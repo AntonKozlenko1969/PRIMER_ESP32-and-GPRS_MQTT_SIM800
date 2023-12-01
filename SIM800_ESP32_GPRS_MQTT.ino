@@ -202,7 +202,8 @@ if (SIM800.available())   {                   // Если модем, что-т�
     if ( _response.indexOf('>') > -1 && (flag_modem_resp == 6 || flag_modem_resp == 8)) // запрос от модема на ввод текста сообщения
        comand_OK = true; 
     else if (_response.indexOf(F("+CPIN: READY")) > -1) PIN_ready = true;
-    else if (_response.indexOf(F("+CPIN: NOT READY")) > -1) {PIN_ready = false; modemOK = false;}
+    else if (_response.indexOf(F("+CPIN: NOT READY")) > -1) {
+      PIN_ready = false; MQTT_connect = false; TCP_ready=false; CALL_ready = false; modemOK = false;}
     else if (_response.indexOf(F("+CCALR: 1")) > -1) CALL_ready = true;
     else if (_response.indexOf(F("+CCALR: 0")) > -1) CALL_ready = false;
     else if (_response.indexOf(F("+CLIP:")) > -1) { // Есть входящий вызов  +CLIP: "069123456",129,"",0,"069123456asdmm",0  
@@ -442,10 +443,23 @@ if (SIM800.available())   {                   // Если модем, что-т�
    }
 
    if (millis()-t_Led > next_led) {
-     // if ( modemOK && count_led == -1) {count_led=3; frequency_led=400;}
-      if (!modemOK && count_led == -1) {count_led=4; frequency_led=400;} //моргает 5 раз потом пауза
-      if (SIM_fatal_error && count_led == -1) {count_led=7; frequency_led=400;} //моргает 8 раз потом пауза      
-        toggleRelay(12);
+
+      if ( modemOK ) {
+       if (count_led == -1) {
+          if (MQTT_connect ) {count_led=3; frequency_led=400;} //моргает 4 раз потом пауза 
+          else if (GPRS_ready) {count_led=2; frequency_led=400;} //моргает 3 раз потом пауза           
+        } 
+       else if (count_led < -1) {
+        count_led=1; frequency_led=1000; }
+       }      
+      else {
+         if ( count_led == -1) {count_led=4; frequency_led=400; //моргает 5 раз потом пауза
+           if (SIM_fatal_error) {count_led=7; frequency_led=400;} //моргает 8 раз потом пауза      
+         }  
+      }
+
+        digitalWrite(12, !digitalRead(12));
+//        toggleRelay(12);
         t_Led=millis();  
         if (!digitalRead(12)) {--count_led; next_led=frequency_led;} 
         else next_led=400;
