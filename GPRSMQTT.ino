@@ -150,7 +150,8 @@ void GPRS_MQTT_Reconnect(){
     if (connect_attempt > 6) timeout = 3*60*1000; // пробовать через 3 минуты
     if (connect_attempt > 15) timeout = 7*60*1000; // пробовать через 7 минут
     if (connect_attempt == 20) {timeout = 30*1000; reconnect_step=0; connect_attempt=0; resub=false;} // начать попытки заново
-
+    if (!modemOK) {reconnect_step=0; timeout = 30000; resub=false;}//создать условие для нового прохода подключений
+    
    nextTime = millis() + timeout;  
   }
 

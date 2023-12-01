@@ -279,7 +279,7 @@ switch (_step) {
       } 
   }  
   else if (command_type == 8) { // connect to MQTT server
-     _interval = 21; // интервал в секундах ожидания ответа от модема  
+    // _interval = 21; // интервал в секундах ожидания ответа от модема  
     switch (_step) {
       case 0: 
       if( TCP_ready) {_step=1; goto EndATCommand;}//признак подключения к MQTT серверу
@@ -295,11 +295,11 @@ switch (_step) {
       case 1: 
         _comm  = F("+CIPSEND=");
         _comm += String(modem_comand.text_com[1] + 2); // отправить определенное количество байт в модем
-        _povtor = 0;  
+        _povtor = -1;  
         goto sendATCommand;        
         break;    
       case 2: 
-       _step = 13; 
+       _step = 13; _comm = F("send data"); _interval = 21; _povtor = 1;  
         goto sendATCommand;          
         break;                            
       }  

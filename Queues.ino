@@ -20,6 +20,9 @@ void add_in_queue_comand(int _inncomand, const char* _inn_text_comand, int _com_
      if (_inncomand !=8) {if (_inn_text_comand[v] == NULL) break;}
    }
    bool add_in_queue; // признак добавления команды в очередь
+  if (_inncomand ==30 && String(modem_comand.text_com) == "+CIPCLOSE" )
+    add_in_queue = xQueueSendToFront(queue_comand, &modem_comand, 0);  
+  else   
     add_in_queue = xQueueSend(queue_comand, &modem_comand, 0);
 
    #ifndef NOSERIAL   
