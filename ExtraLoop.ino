@@ -1,5 +1,7 @@
+// Задача параллельная основному циклу. 
+// Производит передачу команд в модуль SIM800, и отслеживает ответ от модуля.
+// Процесс ожидания ответа не блокирует основной рабочий цикл микроконтроллера.
 void GPRS_modem_traffic( void * pvParameters ){
-  int _num_index = 0; //счетчик номеров из телефонной книги при записи номеров из массива на СИМ
   bool _AT_ret =false; // возврат от сегмента sendATCommand
   String _comm = String(); //исполняемая команда без AT
   int _povtor = 0; //возможное количество повторов текущей команды
@@ -31,24 +33,23 @@ int8_t _step = 0; //текущий шаг в процедуре GPRS_traffic -г
 
   for (;;){
    _interval = 5; // интервал в секундах ожидания ответа от модема (по умолчанию для всех команд)  
-  if (!_AT_ret && _step !=0)   // если предидущая команда неудачно прекратить попытки  
+  if (!_AT_ret && _step !=0)   // если предидущая команда завершилась неудачно, прекратить попытки  
       { _step=14; SMS_currentIndex = 0; // сбросить текущую смс
         _AT_ret=true; 
       if (command_type == 7) retGetZapros(); // если сбой при выполнении GET запроса, закрыть запрос  
-      if (command_type == 8) retTCPconnect(); // если сбой при подключении к сайту MQTT, закрыть соединение  
-      if (command_type != 7 && command_type != 8)  modemOK = false; 
+      else if (command_type == 8) retTCPconnect(); // если сбой при подключении к сайту MQTT, закрыть соединение  
+      else modemOK = false; 
          }
 
   // если никакая команда не исполняется и очередь пуста - задача останавливается до появления элементов в очереди
   if (command_type == 0 && _step == 0 ) {
-   //mod_com  modem_comand;
    if (xQueueReceive( queue_comand, &modem_comand, portMAX_DELAY) == pdTRUE){
       _first_com = String(modem_comand.text_com);
       command_type = modem_comand.com;  
       flag_modem_resp = modem_comand.com_flag;
-      
-      if (command_type  == 6 || command_type == 16) IsRestart = false; // признак однократной отправки Restart в модем
-      if (command_type  == 11)   IsOpros = false;
+     //t_rst - задать отсчет до следующей проверки модема       
+      if (command_type == 6 || command_type == 16) {t_rst=millis(); IsRestart = false;} // признак однократной отправки Restart в модем
+      if (command_type == 11) {t_rst=millis(); IsOpros = false;}
 
      #ifndef NOSERIAL      
         Serial.print("                             Read from QUEUE comand - ");  Serial.print(command_type); 
@@ -76,9 +77,7 @@ switch (_step) {
 
      vTaskDelay(2300); // меньше чем 2,3 секунды модем еще не готов
     t_rst = millis();    
-    //   goto EndATCommand; ++_step;
-    //   break;    
-    // case 0:    
+ 
       PIN_ready = false;
       CALL_ready = false;
       GPRS_ready = false; // признак подключения GPRS
@@ -113,7 +112,6 @@ switch (_step) {
       break;      
     case 6:  
       _comm=F("+CMGF=1;+CMEE=2"); _povtor = 1;  // Включить TextMode для SMS (0-PDU mode) Задать расширенный ответ при получении ошибки +CMEE=2;
-     // _interval = 10; // интервал в секундах ожидания ответа от модема
       goto sendATCommand;
       break;       
     case 7:
@@ -142,7 +140,6 @@ switch (_step) {
       break;  
     case 12:
       _comm=F("+CCALR?;+CPBS?"); _povtor = 2; // выяснить количество номеров на СИМ
-     // _interval = 15; // интервал в секундах ожидания ответа от модема
       goto sendATCommand;
       break;     
     case 13:
@@ -154,12 +151,11 @@ switch (_step) {
            Serial.println("                              MODEM OK");               // ... оповещаем об этом и...
          #endif    
        }
-      else
-      {                                       // Если пришел таймаут, то... модем не готов к работе
-        #ifndef NOSERIAL   
+     #ifndef NOSERIAL  
+      else  // Если пришел таймаут, то... модем не готов к работе
           Serial.println("modem Timeout...");               // ... оповещаем об этом и...
-        #endif  
-       }
+     #endif  
+      
      command_type = 0; //не повторять больше
      _step = 0; // дать возможность запросов из вне
      _comm="";
@@ -243,7 +239,7 @@ switch (_step) {
      case 4:// проверить подключение и получить GPRS_ready
          _comm = FPSTR(GPRScomsnt);
          _comm += F("2,1"); 
-         _step=13; // временно, чтобы перескочить запрос, только установить GPRS соединение
+         _step=13; // временно, чтобы перескочить HTTP запрос, только установить GPRS соединение
         goto sendATCommand;        
         break; 
     //  case 5: // шаги 5, 6, 7 нужны для HTTP запроса и в данном примере не используются
@@ -280,8 +276,8 @@ switch (_step) {
       //   goto sendATCommand;        
       //   break; 
 
-      } // end swith select
-  } //end    if comm=7    
+      } 
+  }  
   else if (command_type == 8) { // connect to MQTT server
      _interval = 55; // интервал в секундах ожидания ответа от модема  
     switch (_step) {
@@ -297,8 +293,8 @@ switch (_step) {
         goto sendATCommand;        
         break;      
       case 1: 
-        //if (! MQTT_connect) {_step=14; goto EndATCommand;} //признак неудачного TCP подключения 
-       _comm  = F("+CIPSEND="); _comm += String(modem_comand.text_com[1] + 2); // отправить определенное количество байт в модем
+        _comm  = F("+CIPSEND=");
+        _comm += String(modem_comand.text_com[1] + 2); // отправить определенное количество байт в модем
         _povtor = -1;  
         goto sendATCommand;        
         break;    
@@ -306,8 +302,8 @@ switch (_step) {
        _step = 13; 
         goto sendATCommand;          
         break;                            
-      } // end swith select  
-  } // end    if comm=8 
+      }  
+  }  
   else if (command_type != 0)  // если тип команды задан, но не обработан - сбросить все значения
    {_step = 0; command_type = 0; _comm="";}
 
@@ -315,8 +311,7 @@ switch (_step) {
 
 sendATCommand:      
  if (command_type != 0) {
-  // _AT_ret=false;
-// только при отправке текста СМС, после получения приглашения > не добавлять AT в начало команды и '\r' в конце
+// только при отправке текста СМС или при отправке данных, после получения приглашения > не добавлять AT в начало команды и '\r' в конце
      if (!((flag_modem_resp == 6 || flag_modem_resp == 8) && _step == 13)) {
       _comm = String(F("AT")) + _comm + String(charCR);  //Добавить в конце командной строки <CR>
        if (command_type==30 && _comm.indexOf(F("ATH")) > -1) one_call = false;
@@ -365,7 +360,7 @@ sendATCommand:
         #endif  
         if (g > _povtor) break; // при превышении количества установленных попыток отправки - выйти из цикла
      ++g;  // счетчик попыток отправки текущей команды
-   } while ( !comand_OK && ! SIM_fatal_error);   // Не пускать дальше, пока модем не вернет ОК  
+   } while (!comand_OK && !SIM_fatal_error);   // Не пускать дальше, пока модем не вернет ОК  
 
    if (_comm.indexOf(F("+HTTPACTION")) > -1){ // ожидание ответа от модема "+HTTPACTION: 0,200"
      g=0;  _povtor= -1; _AT_ret = false;
@@ -380,7 +375,7 @@ sendATCommand:
        #endif                
         if (g > _povtor) break; //  return modemStatus;}
      ++g;
-     } while ( !GET_GPRS_OK && ! SIM_fatal_error);   // Не пускать дальше, пока модем не вернет ОК       
+     } while (!GET_GPRS_OK && !SIM_fatal_error);   // Не пускать дальше, пока модем не вернет ОК       
    }
 
    if (_comm.indexOf(F("+CIPSTART")) > -1){ // ожидание ответа от MQTT сервера с удачным подключением CONNECT OK
@@ -396,7 +391,7 @@ sendATCommand:
           #endif 
         if (g > _povtor) break; //  return modemStatus;}
      ++g;
-     } while ( ! TCP_ready && ! SIM_fatal_error);   // Не пускать дальше, пока модем не вернет ОК  
+     } while (!TCP_ready && !SIM_fatal_error);   // Не пускать дальше, пока модем не вернет ОК  
    }  
        
     ++_step; //увеличить шаг на 1 для перехода к следующей команде

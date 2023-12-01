@@ -7,10 +7,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   Serial.println();
 String _mqttTopic = FPSTR(mqttRelayTopic);
-  //***********
   _mqttTopic +=FPSTR(mqttRelayConfigTopic);
-  //***********
-  char* topicBody = topic + _mqttClient.length();// + 1; // Skip "/ClientName" from topic
+  char* topicBody = topic + _mqttClient.length();
   //strncmp(str1, str2, num) Сравнивает первые num символов из строк str1 и str2. Возвращает 0, если эти участки одинаковы.
   if (! strncmp(topicBody, _mqttTopic.c_str(), _mqttTopic.length())) { 
     topicBody += _mqttTopic.length();
@@ -205,21 +203,21 @@ void GPRS_MQTT_connect (){
      _inn_comm[_curr_poz] =0x00; ++_curr_poz; _inn_comm[_curr_poz]=_mqttPassword.length(); ++_curr_poz;// длина MQTT пароля (2 байта) 
      for (int v=0;v<_mqttPassword.length();++v) {_inn_comm[_curr_poz] = _mqttPassword[v]; ++_curr_poz;} // MQTT пароль
   }
-  add_in_queue_comand(30, String(F("+GSMBUSY=1")).c_str(), -1);
+  add_in_queue_comand(30, String(F("+GSMBUSY=1")).c_str(), 0);
   add_in_queue_comand(8, _inn_comm, 8);
-  add_in_queue_comand(30, String(F("+GSMBUSY=0")).c_str(), -1);  
+  add_in_queue_comand(30, String(F("+GSMBUSY=0")).c_str(), 0);  
 }
 
  void GPRS_MQTT_pub (const String& _topic, const String& _messege) {          // пакет на публикацию
   char _inn_comm[max_text_com];
   int _curr_poz = 4; // текущая позиция в массиве
 
-     #ifndef NOSERIAL  
-        Serial.print("pub topic / mess ");     
-        Serial.print(_topic); 
-        Serial.print(" / ");         
-        Serial.println(_messege);         
-      #endif 
+    //  #ifndef NOSERIAL  
+    //     Serial.print("pub topic / mess ");     
+    //     Serial.print(_topic); 
+    //     Serial.print(" / ");         
+    //     Serial.println(_messege);         
+    //   #endif 
 
     _inn_comm[0]=0x33; // было 0x30 без retain Qos0, 0x31 с retain Qos0, 0x33 Qos1 (не работает??)
     _inn_comm[1]=_topic.length()+_messege.length()+2+2; //отсавшаяся длина пакета
@@ -228,27 +226,27 @@ void GPRS_MQTT_connect (){
     _inn_comm[_curr_poz]=0x00; ++_curr_poz; _inn_comm[_curr_poz]=0x10; ++_curr_poz; // идентификатор отправленного пакета для подтвержения публикации
     for (int8_t v=0; v<_messege.length();++v) {_inn_comm[_curr_poz]=_messege[v]; ++_curr_poz;}   // сообщение  
 
-  add_in_queue_comand(30, String(F("+GSMBUSY=1")).c_str(), -1);
+  add_in_queue_comand(30, String(F("+GSMBUSY=1")).c_str(), 0);
   add_in_queue_comand(8, _inn_comm, 8);
-  add_in_queue_comand(30, String(F("+GSMBUSY=0")).c_str(), -1);  
+  add_in_queue_comand(30, String(F("+GSMBUSY=0")).c_str(), 0);  
   }                                                 
 
 void GPRS_MQTT_ping () {                                // пакет пинга MQTT сервера для поддержания соединения
   char _inn_comm[max_text_com];
   _inn_comm[0]=0xC0; _inn_comm[1]=0x00;
 
-  add_in_queue_comand(30, String(F("+GSMBUSY=1")).c_str(), -1);
+  add_in_queue_comand(30, String(F("+GSMBUSY=1")).c_str(), 0);
   add_in_queue_comand(8, _inn_comm, 8);
-  add_in_queue_comand(30, String(F("+GSMBUSY=0")).c_str(), -1);   
+  add_in_queue_comand(30, String(F("+GSMBUSY=0")).c_str(), 0);   
 }
 
  void GPRS_MQTT_sub (const String& _topic) {                                       // пакет подписки на топик
   char _inn_comm[max_text_com];
   int _curr_poz = 6; // текущая позиция в массиве
-       #ifndef NOSERIAL  
-        Serial.print("sub topic ");     
-        Serial.println(_topic); 
-      #endif    
+      //  #ifndef NOSERIAL  
+      //   Serial.print("sub topic ");     
+      //   Serial.println(_topic); 
+      // #endif    
 
   _inn_comm[0]=0x82; 
   _inn_comm[1]=_topic.length()+5;   // сумма пакета 
@@ -257,7 +255,7 @@ void GPRS_MQTT_ping () {                                // пакет пинга
     for (int8_t v=0; v<_topic.length();++v) {_inn_comm[_curr_poz]=_topic[v]; ++_curr_poz;}  
   _inn_comm[_curr_poz]=0x00;   
 
-  add_in_queue_comand(30, String(F("+GSMBUSY=1")).c_str(), -1);
+  add_in_queue_comand(30, String(F("+GSMBUSY=1")).c_str(), 0);
   add_in_queue_comand(8, _inn_comm, 8);
-  add_in_queue_comand(30, String(F("+GSMBUSY=0")).c_str(), -1);  
+  add_in_queue_comand(30, String(F("+GSMBUSY=0")).c_str(), 0);  
    } 

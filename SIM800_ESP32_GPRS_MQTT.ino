@@ -1,5 +1,3 @@
-// Оригинал взят - http://codius.ru/articles/GSM_%D0%BC%D0%BE%D0%B4%D1%83%D0%BB%D1%8C_SIM800L_%D1%87%D0%B0%D1%81%D1%82%D1%8C_2
-//       Оригинал взят -         (http://codius.ru/articles/GSM_модуль_SIM800L_часть_2)
 
 /* ====================================================================================================
  Демо версия взаимодествия ESP32 и SIM800L через очередь команд и параллельную основному циклу задачу
@@ -435,12 +433,24 @@ if (SIM800.available())   {                   // Если модем, что-т�
         btnLast = btnPressed;
       }
 
-   static unsigned long t_Led;
-   if (millis()-t_Led > 1000) {
-     toggleRelay(12);
-     t_Led=millis();  
+   static unsigned long t_Led; 
+   static int count_led; // счетчик миганий
+   static int16_t frequency_led; // время смены состояния
+   static int16_t next_led;
+   if (count_led == 0) { //исходное состояние
+     frequency_led=1000;
    }
 
+   if (millis()-t_Led > next_led) {
+     // if ( modemOK && count_led == -1) {count_led=3; frequency_led=400;}
+      if (!modemOK && count_led == -1) {count_led=4; frequency_led=400;} //моргает 5 раз потом пауза
+      if (SIM_fatal_error && count_led == -1) {count_led=7; frequency_led=400;} //моргает 8 раз потом пауза      
+        toggleRelay(12);
+        t_Led=millis();  
+        if (!digitalRead(12)) {--count_led; next_led=frequency_led;} 
+        else next_led=400;
+     // Serial.print("count_led = ");Serial.print(count_led); Serial.print(" frequency_led = ");Serial.println(frequency_led);
+   } 
 }
 
 void print_MQTTrespons_to_serial(const String& _resp){
@@ -459,8 +469,7 @@ void exist_numer(){
 }
 
 // Если звонок от БЕЛОГО номера - ответить, включить реле и сбросить вызов
-void regular_call()
-{  
+void regular_call(){  
   add_in_queue_comand(30,"A", -1) ; // отвечаем на вызов 
   add_in_queue_comand(30, "H", -1);  // Завершаем вызов
   toggleRelay(0); // переключаем RELAY
@@ -468,7 +477,6 @@ void regular_call()
 
 void retGetZapros(){
       add_in_queue_comand(30,"+HTTPTERM",-1); // Закрыть текущий запрос
-    // GPRS_ready = false;
      #ifndef NOSERIAL          
            Serial.print("GPRS_ready = false; "); 
      #endif 
@@ -493,7 +501,6 @@ void switchRelay(int8_t id, bool on) {
     if (MQTT_connect) {
       String topic;
       if (_mqttClient != strEmpty) {
-        //topic += charSlash;// 21/11/2023
         topic += _mqttClient;
       }
       topic += FPSTR(mqttRelayTopic);
@@ -507,9 +514,7 @@ void switchRelay(int8_t id, bool on) {
   }
   else {// переключить LED 12, 14
      relay = digitalRead(id);
-      if (relay != on) {
-        digitalWrite(id, HIGH == on);
-      }
+      if (relay != on) digitalWrite(id, HIGH == on);
   }
 
 }
@@ -522,21 +527,17 @@ inline void toggleRelay(int8_t id) {
 }
 
 bool debounceRead(int8_t id, uint32_t debounceTime) {
-
   if (! debounceTime)
     return (digitalRead(id) == (btnLevel & 0x01));
 
   if (digitalRead(id) == (btnLevel & 0x01)) { // Button pressed
     uint32_t startTime = millis();
-
     while (millis() - startTime < debounceTime) {
       if (digitalRead(id) != (btnLevel & 0x01))
         return false;
       delay(1);
     }
-
     return true;
   }
-
   return false;
 }

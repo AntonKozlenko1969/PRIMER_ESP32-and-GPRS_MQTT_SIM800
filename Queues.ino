@@ -1,8 +1,6 @@
 
 //Добавление нового СМС в очередь на обработку
 void add_in_queue_SMS (int _innSMSindex){
-  //AT+CMGD=n,0 - удалить сообщение с номером n
-  //AT+CMGL="ALL" - прочитать все сообщения
   if (xQueueSend(queue_IN_SMS, &_innSMSindex, 0) == pdTRUE){
       #ifndef NOSERIAL      
         Serial.print("Add in QUEUE SMS - "); Serial.println(_innSMSindex);
@@ -22,9 +20,6 @@ void add_in_queue_comand(int _inncomand, const char* _inn_text_comand, int _com_
      if (_inncomand !=8) {if (_inn_text_comand[v] == NULL) break;}
    }
    bool add_in_queue; // признак добавления команды в очередь
-  // if (_inncomand ==30 && (String(modem_comand.text_com) == "H" || String(modem_comand.text_com) == "A" ))
-  //   add_in_queue = xQueueSendToFront(queue_comand, &modem_comand, 0);  
-  // else
     add_in_queue = xQueueSend(queue_comand, &modem_comand, 0);
 
    #ifndef NOSERIAL   
