@@ -172,21 +172,48 @@ void loop() {
 
 if (SIM800.available())   {                   // Если модем, что-то отправил...
     String _response = "";              // Переменная для хранения ответа модуля
+      //Serial.println('\n');
     // Получаем ответ от модема для анализа
-    char inchar; int8_t inn_r=0; int8_t inn_n=0; uint inn_simv=0;
+    char inchar; 
+    static int8_t inn_r;  // количество раз получения символа \r \n
     _response=strEmpty;
     while (SIM800.available()){
-        inchar = SIM800.read();
+      int16_t num_in_simvol=0; // порядковый номер входящего символа
+        inchar = SIM800.read(); ++num_in_simvol;
+        // Serial.print(' ');Serial.print(inchar,HEX);
   //ответ от SIM800 заключен в "скобки" из двух символов <CR><CN> -- respons -- <CR><CN>
   //получиь, в каждом заходе, чистый ОДИНОЧНЫЙ ответ без этих "скобок"
-        if (inchar == '\r') {++inn_r; ++inn_simv;}
-        else if (inchar == '\n') { ++inn_n; ++inn_simv;
-           if (inn_simv > 1 && inn_n == 2 && inn_r == 2) break;
+  //данные из TCP соединения приходят "голые" без заголовка и окончания
+  // приглашение на ввод текста СМС или данных приходит с начальными символами <CR><CN> но без завершающих 
+  // последний символ пробел 0D 0A 3E 20 <CR><CN> '>' '_'
+  // это надо разделять при получении
+        if (inchar == '\r') {
+          char inchar_n; inchar_n = SIM800.read(); ++num_in_simvol;// Serial.print(' '); Serial.print(inchar_n, HEX);// считать следующий символ
+          if (inchar_n == '\n') {// если он \n обработать
+           ++inn_r;
+           // если первые скобки <CR><CN> пришли в одной строке с ответом от TCP соединения
+           if (inn_r == 1 && num_in_simvol > 1) break; //дочитать остаток строки в следующем цикле переменная  inn_r - static
+           if (inn_r == 2) {inn_r=0; break;}
           }
-        else { _response += inchar; ++inn_simv;}
+          else { // если след символ не \n добавить оба символа в строку ответа _response
+           _response += inchar; _response += inchar_n;
+          }
+        }
+        else if (inchar == 0x3E && inn_r == 1){ // после первых скобок <CR><CN> пришел символ > для ввода данных ...
+           _response += inchar; 
+           inchar = SIM800.read(); ++num_in_simvol; //считать след симол
+           if (inchar == 0x20) { // если это пробел завершить прием строки ответа и не ждать вторых скобок <CR><CN>
+             _response += inchar; inn_r=0; break;
+           }
+           else _response += inchar; 
+        }
+        else { _response += inchar; }
     }
+  //Serial.println('\n');
+
       #ifndef NOSERIAL      
         Serial.println("          " + _response);     // Если нужно выводим в монитор порта  
+        //print_MQTTrespons_to_serial(_response);
         // for (int f=0;f<_response.length();++f){
         //   Serial.print(_response[f],HEX); Serial.print(' ');
         // }
@@ -197,7 +224,7 @@ if (SIM800.available())   {                   // Если модем, что-т�
     // ... здесь можно анализировать данные полученные от GSM-модуля
     if (flag_modem_resp == 8)  {
         if (_response.indexOf(F("CONNECT OK")) > -1) TCP_ready=true;
-        if (_response.indexOf(F("CONNECT FAIL")) > -1) { MQTT_connect = false; TCP_ready=false;}      
+        if (_response.indexOf(F("CONNECT FAIL")) > -1) {MQTT_connect = false; TCP_ready=false;}      
     }  
     if ( _response.indexOf('>') > -1 && (flag_modem_resp == 6 || flag_modem_resp == 8)) // запрос от модема на ввод текста сообщения
        comand_OK = true; 
@@ -394,7 +421,7 @@ if (SIM800.available())   {                   // Если модем, что-т�
     // Обработка MQTT
     if ( TCP_ready){
      
-      if (_response[0] == 0x30)  {  MQTT_connect = true; //print_MQTTrespons_to_serial(_response); // пришел ответ на публикацию в подписанном топике
+      if (_response[0] == 0x30)  { MQTT_connect = true; //print_MQTTrespons_to_serial(_response); // пришел ответ на публикацию в подписанном топике
          String s1; 
             s1 += _response.substring(4 , 4 + _response[3]);                 
         char _topik_path[s1.length()+1];
