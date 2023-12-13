@@ -82,60 +82,47 @@ switch (_step) {
       modemOK = false; 
       comand_OK = false;    
       _comm=""; _povtor = 1; //AT - Автонастройка скорости
-      goto sendATCommand;
       break;
     case 1:
-      _comm=F("+CFUN=1,1"); _povtor = 2; //Reset the MT before setting it to <fun> power level.    
-      goto sendATCommand;
+      _comm=F("+CFUN=1,1"); _povtor = 2; //Reset the MT before setting it to <fun> power level.
       break;  
     case 2:
       _comm=F("+CFUN=0"); _povtor = 2; //Set Phone Functionality - Minimum functionality
-      goto sendATCommand;
       break;   
     case 3:
       _comm=F("+CIURC=1"); _povtor = 2;// включить отображение состояния
-      goto sendATCommand;
       break;  
     case 4:
       _comm=F("+CFUN=1"); _povtor = 2;  // Full functionality (Default)
-      //_interval = 25; // ожидает готовность сети интервал в секундах ожидания ответа от модема      
-      goto sendATCommand;
+      //_interval = 25; // ожидает готовность сети интервал в секундах ожидания ответа от модема 
       break;   
     case 5:
       _comm=F("E0"); _povtor = 1;       //E0 отлючаем Echo Mode  
-      goto sendATCommand;
       break;      
     case 6:  
       _comm=F("+CMGF=1;+CMEE=2"); _povtor = 1;  // Включить TextMode для SMS (0-PDU mode) Задать расширенный ответ при получении ошибки +CMEE=2;
-      goto sendATCommand;
       break;       
     case 7:
       _comm=F("+CPIN?;+CCALR?"); _povtor = 1;// запрос на готовность симки (отсутствие PIN) и готовность звонков +CCALR?
-      goto sendATCommand;
       break;      
     case 8:
       _comm=F("+CPBS=\"SM\""); _povtor = 2;// указать место хранения номеров - SIM
-      goto sendATCommand;
       break;   
     case 9: 
       _comm=F("+CLIP=1;+CCALR?"); _povtor = 2;// Включаем АОН 
       _interval = 20; // интервал в секундах ожидания ответа от модема
-      goto sendATCommand;
       break;    
        // AT+CLTS=0 Отключить вывод текущей временной зоны при каждом входящем звонке
        // AT+CUSD=0 Отключить вывод дополнительной информации при каждом входящем звонке
     case 10:
       _comm=F("+CLTS=0;+CUSD=0"); _povtor = 2;
-      goto sendATCommand;
       break;   
    
     case 11:
-      _comm=F("&W"); _povtor = 1; //сохраняем значение (AT&W)!      
-      goto sendATCommand;
+      _comm=F("&W"); _povtor = 1; //сохраняем значение (AT&W)!
       break;  
     case 12:
       _comm=F("+CCALR?;+CPBS?"); _povtor = 2; // выяснить количество номеров на СИМ
-      goto sendATCommand;
       break;     
     case 13:
   _timeout = millis();             // Переменная для отслеживания таймаута (35 секунд)
@@ -161,20 +148,17 @@ switch (_step) {
      if (_step == 0){
         _step = 13; // создать условие для одноразового прохода
         _comm=F("+CMGDA=\"DEL ALL\""); _povtor = 2;
-       goto sendATCommand;
      }
    }
   else if (command_type == 11){ // Тестовая команда, раз в 5 минут
      if (_step == 0){ 
        _comm=""; _povtor = 0; t_rst=millis();
-       goto sendATCommand;        
      }
      else if(_step == 1) {
        PIN_ready = false; command_type = 6; CALL_ready = false; 
        _step = 12;// переход к команде сброса, следующий шаг 13 - ожидание ответа PIN READY
         modemOK = false; 
       _comm=F("+CCALR?;+CPIN?"); _povtor = 1;// запрос на готовность симки (отсутствие PIN) и готовность сети
-      goto sendATCommand;
      }
    }
   else if (command_type == 30) //выполнить одиночную команду для модема
@@ -182,7 +166,6 @@ switch (_step) {
        _step = 13;  // создать условие для одноразового прохода
        _comm=_first_com; 
        if (flag_modem_resp == -1) { _povtor = -1; flag_modem_resp=0;} else _povtor = 2;
-       goto sendATCommand;
      }
    }
   else if (command_type == 20) //выполнить команду для отправки СМС
@@ -191,14 +174,12 @@ switch (_step) {
         flag_modem_resp = 6; // флаг на ожидание приглашения для ввода текста '>'
         _comm = _first_com.substring(0, _first_com.indexOf(charCR)); // сначала передать команду до перевода каретки и дождаться приглашения для ввода текста '>'
          _povtor = -1;
-       goto sendATCommand;
       }
      else if (_step == 1){ 
         _step = 13;  // создать условие для одноразового прохода
         _comm = _first_com.substring(_first_com.indexOf(charCR)); // передать текст сообщения после символа перевода каретки
         _povtor = -1;
        _interval = 55; // интервал в секундах ожидания ответа от модема
-       goto sendATCommand;
       }  
    }
 
@@ -207,15 +188,13 @@ switch (_step) {
     switch (_step) {
       case 0: 
         ++_step; goto EndATCommand;//пропустить в рабочем скетче
-       _comm=F("+HTTPSTATUS?"); _povtor = 0;        
-        goto sendATCommand;        
+       _comm=F("+HTTPSTATUS?"); _povtor = 0;
         break;                 
      case 1:
        _povtor = 1; // установить для всех команд из этой серии
        if (! GPRS_ready) // если модем еще не настроен на GPRS
          { _comm = FPSTR(GPRScomsnt);
            _comm += F("3,1,\"Contype\", \"GPRS\""); 
-            goto sendATCommand;
          }
        else
         {_step=5; goto EndATCommand;}
@@ -224,18 +203,15 @@ switch (_step) {
          _comm = FPSTR(GPRScomsnt);
          _comm += F("3,1,\"APN\", \"");
          _comm += apn +"\"" ; 
-        goto sendATCommand;        
         break;  
      case 3:
          _comm=FPSTR(GPRScomsnt);
          _comm += F("1,1"); 
-        goto sendATCommand;        
         break; 
      case 4:// проверить подключение и получить GPRS_ready
          _comm = FPSTR(GPRScomsnt);
          _comm += F("2,1"); 
-         _step=13; // временно, чтобы перескочить HTTP запрос, только установить GPRS соединение
-        goto sendATCommand;        
+         _step=13; // временно, чтобы перескочить HTTP запрос, только установить GPRS соединение  
         break; 
     //  case 5: // шаги 5, 6, 7 нужны для HTTP запроса и в данном примере не используются
     //      _comm =F("+HTTPINIT"); 
@@ -249,26 +225,22 @@ switch (_step) {
 
     //     _comm += colon;
     //     _comm +=F("+HTTPACTION=0");
-    //     GET_GPRS_OK = false;
-    //     goto sendATCommand;        
+    //     GET_GPRS_OK = false;    
     //     break; 
     //  case 6: 
     //     if (GET_GPRS_OK)  //если сервер ответил с кодом 200, считать содержимое ответа
-    //       {
-    //         _comm=F("+HTTPREAD");
-    //         goto sendATCommand; }
+    //        _comm=F("+HTTPREAD"); 
     //     else 
     //      { 
     //       #ifndef NOSERIAL
     //        Serial.println(" web access fail");
     //       #endif         
-    //        _step=7; goto EndATCommand;
+    //        _step=7; 
     //      }
     //     break; 
       // case 7: 
       //  _comm=F("+HTTPTERM"); 
-      //    _step = 13;              
-      //   goto sendATCommand;        
+      //    _step = 13;       
       //   break; 
 
       } 
@@ -284,18 +256,15 @@ switch (_step) {
        _comm.reserve(_comm.length()+8);
        {String st_temp8=String( _mqttPort);
        _comm += st_temp8; } //PORT;
-       _comm += F("\""); _povtor = 0;   
-        goto sendATCommand;        
+       _comm += F("\""); _povtor = 0;      
         break;      
       case 1: 
         _comm  = F("+CIPSEND=");
         _comm += String(modem_comand.text_com[1] + 2); // отправить определенное количество байт в модем
-        _povtor = -1;  
-        goto sendATCommand;        
+        _povtor = -1;   
         break;    
       case 2: 
-       _step = 13; _comm = F("send data"); _interval = 21; _povtor = 1;  
-        goto sendATCommand;          
+       _step = 13; _comm = F("send data"); _interval = 21; _povtor = 1;       
         break;                            
       }  
   }  
@@ -303,8 +272,7 @@ switch (_step) {
    {_step = 0; command_type = 0; _comm="";}
 
   if (_step > 13) {_step = 0; command_type = 0; _comm="";}  // Максимальное число итераций в команде - 13
-
-sendATCommand:      
+// *****   Блок выполнения АТ команды с повтором в случае таймаута и выполнение второй части команды если логика того требует *******
  if (command_type != 0) {
 // только при отправке текста СМС или при отправке данных, после получения приглашения > не добавлять AT в начало команды и '\r' в конце
      if (!((flag_modem_resp == 6 || flag_modem_resp == 8) && _step == 13)) {
