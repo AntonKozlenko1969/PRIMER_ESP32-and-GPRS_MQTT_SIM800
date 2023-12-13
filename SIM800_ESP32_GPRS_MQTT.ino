@@ -30,6 +30,7 @@ uint8_t btnLevel = 1;               // Уровни на цифровом вхо
 String whiteListPhones = "069202891, 123456789, 987654321";   // Белый список телефонов
 // Односимвольные константы
 const char charCR = '\r';
+const char charLF = '\n';
 const char* const strEmpty = "";
 const char charQuote = '"';
 const int8_t maxRelays = 3; // Количество каналов реле
@@ -60,9 +61,8 @@ const char mqttRelayConfigTopic[] PROGMEM = "/Config"; //топик для по�
   const char mqttDeviceIPTopic[] PROGMEM = "/LocalIP";
   const char MQTT_type[15] PROGMEM = "MQTT";  //"MQIsdp";  // тип протокола 
 //Переменные для работы с SMS
-// char SMS_incoming_num[DIGIT_IN_PHONENAMBER+7]; // номер с которого пришло СМС - для ответной СМС
-// char SMS_text_num[DIGIT_IN_PHONENAMBER+1];  // номер телефона из СМС
-// char SMS_text_comment[5+1]; // комментарий к номеру из СМС
+char SMS_incoming_num[DIGIT_IN_PHONENAMBER+7]; // номер с которого пришло СМС - для ответной СМС
+int8_t next_sms = 25; // интервал между обработкой SMS - 15 sec, чтобы дать время для MQTT
 
 int16_t alloc_num[3]={0,0,0}; //Количество имеющихся в телефонной книге номеров и общее возможное количество номеров
 unsigned long t_rst = 0; //120*1000; // отследить интервал для перезапуска модема
@@ -287,13 +287,11 @@ if (SIM800.available())   {                   // Если модем, что-т�
     }
     //********* проверка отправки SMS ***********
     else if (_response.indexOf(F("+CMGS:")) > -1) {       // Пришло сообщение об отправке SMS
-      //flag_modem_resp = 1; //Выставляем флаг и далее при получении ответа от модема OK или ERROR понимаем отправлено СМС или нет
-      t_last_command = millis();  
+      //t_last_command = millis();  
       #ifndef NOSERIAL        
         Serial.print("Sending SMS ");
         Serial.print("flag_modem_resp = "); Serial.println(String(flag_modem_resp));   
       #endif
-      // Находим последний перенос строки, перед статусом
     }
     //********** проверка приема SMS ***********
     else if (_response.indexOf(F("+CMTI:")) > -1) {       // Пришло сообщение о приеме SMS
@@ -317,7 +315,7 @@ if (SIM800.available())   {                   // Если модем, что-т�
            //Serial.print(" ======= temp_in  "); Serial.print(temp_in);  Serial.println(" =======");          
         }
         comand_OK = true;    
-       // parseSMS(_response);        // Распарсить SMS на элементы
+        parseSMS(_response);        // Распарсить SMS на элементы
     }
     else if (_response.indexOf(F("+CPBS:")) > -1){ // выяснить количество занятых номеров на СИМ и общее возможное количество
       uint8_t index1 = _response.indexOf(',') + 1;   // Находим запятую, перед количеством имеющихся номеров
@@ -393,15 +391,20 @@ if (SIM800.available())   {                   // Если модем, что-т�
 
     if (_response.indexOf(F("OK")) > -1) { // если происходит соединение с MQTT сервером отследить CONNECT OK
       comand_OK = true;
-      String SMSResp_Mess;
-
+     if (SMS_currentIndex !=0 && flag_modem_resp == 6){ 
+        #ifndef NOSERIAL  
+          Serial.print("SMS_currentIndex = "); Serial.print(SMS_currentIndex);      
+          Serial.println (" Message was sent. OK");
+        #endif
+        EraseCurrSMS();// Удалить текущую СМС из памяти модуля
+        flag_modem_resp=0;        
+      }
      }
      if (_response.indexOf(F("ERROR")) > -1) {
       if (SMS_currentIndex != 0){
         #ifndef NOSERIAL        
          Serial.println ("Message was not sent. Error");
         #endif
-        //flag_modem_resp=0;  
       }
       else if (flag_modem_resp==2) // завершен одиночный поиск номера из СМС - приступить к выполнению команды
         flag_modem_resp=0;   
@@ -444,6 +447,15 @@ if (SIM800.available())   {                   // Если модем, что-т�
        SIM800.write(Serial.read());                // ...и отправляем полученную команду модему
     }
   #endif
+
+  static unsigned long t_SMS; 
+  if (SMS_currentIndex == 0 && modemOK && millis() - t_SMS > next_sms*1000) {// Если нет СМС в обработке  - проверить очередь
+     if (xQueueReceive(queue_IN_SMS, &SMS_currentIndex, 0) == pdTRUE) {  //Если нет СМС в обработке - записать в переменную SMS_currentIndex - номер СМС из очереди
+        String temp2 = "+CMGR=" + String(SMS_currentIndex);
+        add_in_queue_comand(30, temp2.c_str(), 0);  //ОТправить входящую СМС на считывание содержания и обработку
+        t_SMS=millis();
+     }   
+  }
 
 // опросить кнопку и переключить LED
   static bool btnLast;
