@@ -58,7 +58,7 @@ void madeSMSCommand(const String& msg, const String& incoming_phone){
 String SMSResp_Mess =""; 
 SMSResp_Mess = F("You send : ");
 SMSResp_Mess += msg;
-//SMSResp_Mess += charCR + charLF;//"\r\n";
+toggleRelay(1); // переключаем RELAY
 sendSMS(incoming_phone, SMSResp_Mess);
 }
 
