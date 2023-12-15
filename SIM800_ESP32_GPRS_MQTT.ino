@@ -113,9 +113,10 @@ void setup() {
         // Set GSM module baud rate and UART pins
     SIM800.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);  // Скорость обмена данными с модемом
 
-  Serial.begin(115200);                                         // Скорость обмена данными с компьютером
-                                       
-  Serial.println("Start!");
+  #ifndef NOSERIAL
+     Serial.begin(115200);                                         // Скорость обмена данными с компьютером
+     Serial.println("Start!");
+  #endif
 
   for (int i = 0; i < 3; i++) {
     pinMode(relayPin[i], OUTPUT);                                 // Настраиваем пины в OUTPUT
@@ -143,7 +144,7 @@ void setup() {
                     NULL,        /* Параметр задачи */
                     1,           /* Приоритет задачи */
                     &Task3,      /* Идентификатор задачи, чтобы ее можно было отслеживать */
-                    1);          /* Ядро для выполнения задачи (0) */
+                    0);          /* Ядро для выполнения задачи (0) */
 
   vTaskDelay(30);
   // стартовые настройки модема
@@ -308,13 +309,7 @@ if (SIM800.available())   {                   // Если модем, что-т�
       add_in_queue_SMS(result.toInt());
     }
     else if (_response.indexOf(F("+CMGR:")) > -1) {    // Пришел текст SMS сообщения 
-        _response += '\r' + SIM800.readStringUntil('\n'); //.readString();  читаем до конца строки (без OK) 
-        {
-           //Serial.print(" ======= _response  "); Serial.print(_response); Serial.println(" =======");          
-           String  temp_in = SIM800.readString(); // если модем прислал текст сообщения, дочитываем до OK и закрываем команду
-           //Serial.print(" ======= temp_in  "); Serial.print(temp_in);  Serial.println(" =======");          
-        }
-        comand_OK = true;    
+        _response += '\r' + SIM800.readStringUntil('\n'); // читаем до конца строки (без OK) 
         parseSMS(_response);        // Распарсить SMS на элементы
     }
     else if (_response.indexOf(F("+CPBS:")) > -1){ // выяснить количество занятых номеров на СИМ и общее возможное количество
@@ -459,6 +454,7 @@ if (SIM800.available())   {                   // Если модем, что-т�
 
 // опросить кнопку и переключить LED
   static bool btnLast;
+  static unsigned long t_Bttn;   
       bool btnPressed = debounceRead(36, 20);
 
       if (btnPressed != btnLast) {
@@ -468,8 +464,15 @@ if (SIM800.available())   {                   // Если модем, что-т�
           if (btnPressed)
             toggleRelay(14);
         }
-        // Serial.print(F("Button "));
-        // Serial.println(btnPressed ? F("pressed") : F("released"));
+    #ifndef NOSERIAL
+        unsigned long interval_Bttn = millis() - t_Bttn;
+        if (interval_Bttn > 700) {
+        Serial.print(F("Interval - ")); Serial.print(interval_Bttn);     
+        Serial.print(F(" Button "));
+        Serial.println(btnPressed ? F("pressed") : F("released"));
+        }
+    #endif
+        t_Bttn = millis();
         btnLast = btnPressed;
       }
 

@@ -1,11 +1,12 @@
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  Serial.print(F("MQTT message arrived ["));
-  Serial.print(topic);
-  Serial.print(F("] "));
-  for (int i = 0; i < length; ++i) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
+   #ifndef NOSERIAL
+     Serial.print(F("MQTT message arrived ["));
+     Serial.print(topic);
+     Serial.print(F("] "));
+    for (int i = 0; i < length; ++i)  Serial.print((char)payload[i]); 
+    Serial.println();
+  #endif
+
 String _mqttTopic = FPSTR(mqttRelayTopic);
   _mqttTopic +=FPSTR(mqttRelayConfigTopic);
   char* topicBody = topic + _mqttClient.length();
@@ -37,13 +38,19 @@ String _mqttTopic = FPSTR(mqttRelayTopic);
             }
         }
       } else {
-        Serial.println(F("Wrong relay index!"));
+         #ifndef NOSERIAL 
+          Serial.println(F("Wrong relay index!"));
+         #endif 
       }
     } else {
-      Serial.println(F("Unexpected topic!"));
+        #ifndef NOSERIAL
+         Serial.println(F("Unexpected topic!"));
+        #endif 
     }
   } else {
-    Serial.println(F("Unexpected topic!"));
+      #ifndef NOSERIAL
+        Serial.println(F("Unexpected topic!"));
+      #endif  
   }
 }
 
@@ -69,9 +76,11 @@ void mqttResubscribe() {
 }
 
 bool mqttSubscribe(const String& topic) {
-  Serial.print(F("MQTT subscribe to topic \""));
-  Serial.print(topic);
-  Serial.println('\"');
+  #ifndef NOSERIAL
+    Serial.print(F("MQTT subscribe to topic \""));
+    Serial.print(topic);
+    Serial.println('\"');
+  #endif
   if (MQTT_connect) {
      GPRS_MQTT_sub(topic); 
     return true;
@@ -79,11 +88,13 @@ bool mqttSubscribe(const String& topic) {
 }
 
 bool mqttPublish(const String& topic, const String& value) {
-  Serial.print(F("MQTT publish topic \""));
-  Serial.print(topic);
-  Serial.print(F("\" with value \""));
-  Serial.print(value);
-  Serial.println('\"');
+  #ifndef NOSERIAL
+    Serial.print(F("MQTT publish topic \""));
+    Serial.print(topic);
+    Serial.print(F("\" with value \""));
+    Serial.print(value);
+    Serial.println('\"');
+  #endif  
   if (MQTT_connect) {
      GPRS_MQTT_pub(topic, value); 
     return true;
