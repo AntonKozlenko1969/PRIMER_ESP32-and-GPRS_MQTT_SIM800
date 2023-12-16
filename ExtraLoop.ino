@@ -11,8 +11,8 @@ void GPRS_modem_traffic( void * pvParameters ){
   String _first_com;  // строковая переменная с командой из очереди команд
   _first_com.reserve(max_text_com+1);
 //************************************************
-  const String apn = F("wap.orange.md"); // vremenno
-  const char GPRScomsnt[] PROGMEM = "+SAPBR=";// vremenno
+  const String apn = F("wap.orange.md"); 
+  const char GPRScomsnt[] PROGMEM = "+SAPBR=";
 // ********************************************************
 uint8_t command_type =0; //тип отправленной в модем команды 
                          // 6 - reset sim800

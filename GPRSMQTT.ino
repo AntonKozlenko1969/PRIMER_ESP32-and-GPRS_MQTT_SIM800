@@ -171,9 +171,8 @@ void GPRS_MQTT_Reconnect(){
 void GPRS_MQTT_connect (){
   char _inn_comm[max_text_com];
   int _curr_poz = 2; // текущая позиция в массиве
-  uint16_t rest_length =0; // общее количество байт в пакете (крме первых двух)
+  uint16_t rest_length =0; // общее количество байт в пакете (кроме первых двух)
   String topic ;
-         //topic += charSlash;
          topic += _mqttClient;   
          topic += mqttDeviceStatusTopic;         
 

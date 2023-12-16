@@ -6,8 +6,6 @@
 // Отладочная плата Lilygo T-CALL SIM800
 // описание https://github.com/Xinyuan-LilyGO/LilyGo-T-Call-SIM800/tree/master
 
-// #include <SoftwareSerial.h>                                   // Библиотека програмной реализации обмена по UART-протоколу
-// SoftwareSerial SIM800(8, 9);                                  // RX, TX
 // Определение пинов для взаимодействия с SIM800L
 #define MODEM_RST             5
 #define MODEM_PWRKEY          4
