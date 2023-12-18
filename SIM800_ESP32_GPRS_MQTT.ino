@@ -177,10 +177,10 @@ if (SIM800.available())   {                   // Если модем, что-т�
         inchar = SIM800.read(); ++num_in_simvol;
         // Serial.print(' ');Serial.print(inchar,HEX);
   //ответ от SIM800 заключен в "скобки" из двух символов <CR><CN> -- respons -- <CR><CN>
-  //получиь, в каждом заходе, чистый ОДИНОЧНЫЙ ответ без этих "скобок"
+  //получить, в каждом заходе, чистый ОДИНОЧНЫЙ ответ без этих "скобок"
   //данные из TCP соединения приходят "голые" без заголовка и окончания
   // приглашение на ввод текста СМС или данных приходит с начальными символами <CR><CN> но без завершающих 
-  // последний символ пробел 0D 0A 3E 20 <CR><CN> '>' '_'
+  // последний символ пробел (0D 0A 3E 20) = (<CR><CN> '>' '_')
   // это надо разделять при получении
         if (inchar == '\r') {
           char inchar_n; inchar_n = SIM800.read(); ++num_in_simvol;// Serial.print(' '); Serial.print(inchar_n, HEX);// считать следующий символ
@@ -197,7 +197,7 @@ if (SIM800.available())   {                   // Если модем, что-т�
         else if (inchar == 0x3E && inn_r == 1){ // после первых скобок <CR><CN> пришел символ > для ввода данных ...
            _response += inchar; 
            inchar = SIM800.read(); ++num_in_simvol; //считать след симол
-           if (inchar == 0x20) { // если это пробел завершить прием строки ответа и не ждать вторых скобок <CR><CN>
+           if (inchar == 0x20) { // если это пробел, завершить прием строки ответа и не ждать вторых скобок <CR><CN>
              _response += inchar; inn_r=0; break;
            }
            else _response += inchar; 
@@ -239,12 +239,11 @@ if (SIM800.available())   {                   // Если модем, что-т�
       String innerPhone = "";                   // Переменная для хранения определенного номера
       if (phoneindex >= 0) {                    // Если информация была найдена
         phoneindex += DIGIT_IN_PHONENAMBER-1;  // Парсим строку и ...
-       // innerPhone = _response.substring(_response.indexOf("\"", phoneindex)-DIGIT_IN_PHONENAMBER, _response.indexOf("\"", phoneindex)); //innerPhone = _response.substring(phoneindex, _response.indexOf("\"", phoneindex)); // ...получаем номер
         innerPhone = _response.substring(_response.indexOf(charQuote, phoneindex)-DIGIT_IN_PHONENAMBER, _response.indexOf(charQuote, phoneindex)); //NEW // ...получаем номер
       #ifndef NOSERIAL          
         Serial.print("Number: "); Serial.println(innerPhone); // Выводим номер в монитор порта    
       #endif  
-        //поиск текстового поля в ответе +CLIP: "069071234",129,"",0,"",0
+        //поиск текстового поля в ответе +CLIP: "123456789",129,"",0,"",0
         int last_comma_index = _response.lastIndexOf(',');
         int fist_comma_index = String(_response.substring(0,last_comma_index-1)).lastIndexOf(',');
         if ((last_comma_index-fist_comma_index) >= DIGIT_IN_PHONENAMBER)
@@ -263,9 +262,9 @@ if (SIM800.available())   {                   // Если модем, что-т�
         #endif  
       }
       // Проверяем, чтобы длина номера была больше 6 цифр, и номер должен быть в списке
-      // whiteListPhones Белый список телефонов максимум 3 номера по 8 симолов
+      // whiteListPhones Белый список телефонов максимум 3 номера по DIGIT_IN_PHONENAMBER симолов
       if (innerPhone.length() > DIGIT_IN_PHONENAMBER-3 && whiteListPhones.indexOf(innerPhone) > -1) {
-         regular_call(); // Если звонок от БЕЛОГО номера из EEPROM - ответить, включить реле и сбросить вызов
+         regular_call(); // Если звонок от БЕЛОГО номера - ответить, включить реле и сбросить вызов
         #ifndef NOSERIAL  
           Serial.println("Call from WhiteList");
         #endif  
@@ -278,7 +277,7 @@ if (SIM800.available())   {                   // Если модем, что-т�
       }  
 
     // Если нет, то отклоняем вызов  
-      else   add_in_queue_comand(30, "H", 0);
+      else add_in_queue_comand(30, "H", 0);
     }
     //********* проверка отправки SMS ***********
     else if (_response.indexOf(F("+CMGS:")) > -1) {       // Пришло сообщение об отправке SMS
@@ -320,7 +319,7 @@ if (SIM800.available())   {                   // Если модем, что-т�
         Serial.println( alloc_num[1]); 
       #endif        
     }
-    else if (_response.indexOf(F("+CPBF:")) > -1) { // +CPBF: 4,"078123456",129,"078123456Manip"
+    else if (_response.indexOf(F("+CPBF:")) > -1) { // +CPBF: 4,"123456789",129,"123456789Manip"
       String phonen_index; 
         firstIndex = _response.indexOf(',');
         phonen_index = _response.substring(7, firstIndex); 
@@ -495,7 +494,6 @@ if (SIM800.available())   {                   // Если модем, что-т�
       }
 
         digitalWrite(12, !digitalRead(12));
-//        toggleRelay(12);
         t_Led=millis();  
         if (!digitalRead(12)) {--count_led; next_led=frequency_led;} 
         else next_led=400;
@@ -518,7 +516,7 @@ void exist_numer(){
   return;
 }
 
-// Если звонок от БЕЛОГО номера - ответить, включить реле и сбросить вызов
+// Если звонок от БЕЛОГО номера - ответить, сбросить вызов и включить реле
 void regular_call(){  
   add_in_queue_comand(30,"A", -1) ; // отвечаем на вызов 
   add_in_queue_comand(30, "H", -1);  // Завершаем вызов
@@ -533,7 +531,7 @@ void retGetZapros(){
 }
 
 void retTCPconnect(){
-      add_in_queue_comand(30,"+CIPCLOSE",-1); // Закрыть текущий запрос
+      add_in_queue_comand(30,"+CIPCLOSE",-1); // Закрыть текущее TCP соединение
       TCP_ready = false; MQTT_connect=false; 
      #ifndef NOSERIAL          
            Serial.print("TCP_ready = false; "); 
