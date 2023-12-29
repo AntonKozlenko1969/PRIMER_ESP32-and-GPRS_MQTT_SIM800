@@ -21,7 +21,7 @@
 int relayPin[3] = {2, 25, 13};                                 // Пины с подключенными светодиодами
 uint8_t btnLevel = 1;               // Уровни на цифровом входе при замыкании кнопки (младший бит) и признак фиксируемого выключателя (старший бит)
 
-String whiteListPhones = "069202891, 067430847, 987654321";   // Белый список телефонов
+String whiteListPhones = "123456789, 123456789, 987654321";   // Белый список телефонов
 // Односимвольные константы
 const char charCR = '\r';
 const char charLF = '\n';
@@ -87,10 +87,10 @@ const int max_text_com = 350;
  QueueHandle_t queue_comand; // очередь передачи команд в модуль SIM800 размер - int8_t [max_queue]
  QueueHandle_t queue_IN_SMS; // очередь обработки входящих СМС
 
-String _mqttServer="gumoldova822.cloud.shiftr.io"; // MQTT-брокер
+String _mqttServer="MQTT url"; // MQTT-брокер
   uint16_t _mqttPort=1883; // Порт MQTT-брокера
-  String _mqttUser="gumoldova822"; // Имя пользователя для авторизации
-  String _mqttPassword="7iVIJbwz3VI8HaXd"; // Пароль для авторизации  
+  String _mqttUser="MQTT user"; // Имя пользователя для авторизации
+  String _mqttPassword="MQTT password"; // Пароль для авторизации  
   String _mqttClient="ESP_Relay"; // Имя клиента для MQTT-брокера (используется при формировании имени топика для публикации в целях различия между несколькими клиентами с идентичным скетчем)
 
 
