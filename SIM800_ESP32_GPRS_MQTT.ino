@@ -303,6 +303,20 @@ if (SIM800.available())   {                   // Если модем, что-т�
     }
     else if (_response.indexOf(F("+CMGR:")) > -1) {    // Пришел текст SMS сообщения 
         _response += '\r' + SIM800.readStringUntil('\n'); // читаем до конца строки (без OK) 
+     //********** 30_05_2025 *************************
+         if (SIM800.available()) {
+           String dop_string = ""; // читаем до конца чтобы получить OK
+          char dop_char;     
+        while (SIM800.available()) {
+          dop_char = SIM800.read();
+          dop_string += dop_char;
+        }  
+         if (dop_string.indexOf(F("OK")) > -1) comand_OK = true; //завершить команду
+          #ifndef NOSERIAL        
+            Serial.print("dop_string "); Serial.println(dop_string);
+          #endif              
+         }            
+     //********** 30_05_2025 *************************        
         parseSMS(_response);        // Распарсить SMS на элементы
     }
     else if (_response.indexOf(F("+CPBS:")) > -1){ // выяснить количество занятых номеров на СИМ и общее возможное количество
